@@ -8,6 +8,11 @@
 
 #import <UIKit/UIKit.h>
 
-@interface JPViewController : UIViewController
+@interface JPViewController : UIViewController <UITableViewDataSource, UITableViewDelegate> {
+ @private
+  NSArray* _tableData; 
+}
+
+@property (nonatomic, retain) IBOutlet UITableView* tableView;
 
 @end

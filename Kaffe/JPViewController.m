@@ -7,54 +7,76 @@
 //
 
 #import "JPViewController.h"
+#import "ASIHTTPRequest.h"
+#import "JSONKit.h"
+#import "UIImageView+WebCache.h"
+#import "JPDetailViewController.h"
 
 @implementation JPViewController
 
-- (void)didReceiveMemoryWarning
-{
-    [super didReceiveMemoryWarning];
-    // Release any cached data, images, etc that aren't in use.
+@synthesize tableView = _tableView;
+
+- (void) loadData {
+  NSString* dataUrl = @"http://www.jonpacker.com/kaffe.json";
+  __block ASIHTTPRequest* request = [[ASIHTTPRequest alloc] initWithURL:[NSURL URLWithString:dataUrl]];
+  [request setCompletionBlock:^{
+    _tableData = [[request.responseData objectFromJSONData] retain];
+    [_tableView reloadData];
+  }];
+  [request setFailedBlock:^{
+    // Would normally handle errors here
+  }];
+  [request startAsynchronous];
 }
 
-#pragma mark - View lifecycle
-
-- (void)viewDidLoad
-{
-    [super viewDidLoad];
-	// Do any additional setup after loading the view, typically from a nib.
+- (UITableViewCell *) tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+  static NSString* cellIdentifier = @"cellId";
+  
+  UITableViewCell* cell = [tableView dequeueReusableCellWithIdentifier:cellIdentifier];
+  if (!cell) {
+    cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:cellIdentifier];
+    cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
+  }
+  
+  NSDictionary* item = [_tableData objectAtIndex:indexPath.row];
+  
+  cell.textLabel.text = [item objectForKey:@"type"];
+  
+  return cell;
 }
 
-- (void)viewDidUnload
-{
-    [super viewDidUnload];
-    // Release any retained subviews of the main view.
-    // e.g. self.myOutlet = nil;
+- (NSInteger) numberOfSectionsInTableView:(UITableView *)tableView {
+  return !!_tableData;
 }
 
-- (void)viewWillAppear:(BOOL)animated
-{
-    [super viewWillAppear:animated];
+- (NSInteger) tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
+  return _tableData ? _tableData.count : 0;
 }
 
-- (void)viewDidAppear:(BOOL)animated
-{
-    [super viewDidAppear:animated];
+- (void) tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+  [tableView deselectRowAtIndexPath:indexPath animated:YES];
+  
+  NSDictionary* item = [_tableData objectAtIndex:indexPath.row];
+  
+  NSString* nibName = @"JPDetailViewController";
+  NSBundle* bundle = [NSBundle mainBundle];
+  JPDetailViewController* detailViewController = [[JPDetailViewController alloc] initWithNibName:nibName bundle:bundle];
+  
+  detailViewController.dataItem = item;
+  
+  [self.navigationController pushViewController:detailViewController animated:YES];
+  [detailViewController release];
 }
 
-- (void)viewWillDisappear:(BOOL)animated
-{
-	[super viewWillDisappear:animated];
+- (void) viewDidLoad {
+  [super viewDidLoad];
+  [self loadData];
 }
 
-- (void)viewDidDisappear:(BOOL)animated
-{
-	[super viewDidDisappear:animated];
-}
-
-- (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
-{
-    // Return YES for supported orientations
-  return (interfaceOrientation != UIInterfaceOrientationPortraitUpsideDown);
+- (void) dealloc {
+  self.tableView = nil;
+  [_tableData release], _tableData = nil;
+  [super dealloc];
 }
 
 @end
